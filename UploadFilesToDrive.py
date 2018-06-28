@@ -210,6 +210,13 @@ def DealWithFile(parentID, fileObject):
 def MoveTreeToDrive(parentID, dirPath):
     """
     Function: MoveTreeToDrive
+    Purpose: Cycle through all items in a path to determine if they are a File 
+        or Directory and then treat appropriately.
+    param1: parentID
+    Type: id of Mime object application/vnd.google-apps.folder
+    param2: dirpath
+    Type: string of file Path
+    Returns: Not a Saussage.
     
     """
     logging.debug("::".join(("MoveTreeToDrive", parentID, dirPath)))
@@ -223,6 +230,11 @@ def MoveTreeToDrive(parentID, dirPath):
 
 
 def makeService():
+    """
+    Function: Make Drive API service.
+    Purpose:  Hook into Drive API so we can send stuff up and down.
+    Returns: API service
+    """
     logging.debug( "makeService" )
     SCOPES = 'https://www.googleapis.com/auth/drive'
     store = file.Storage('credentials.json')
