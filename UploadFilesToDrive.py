@@ -18,14 +18,40 @@ from apiclient.http import MediaFileUpload
 
 
 def StringToTimeObject(TimeString):
+    """
+    Function: StringToTimeObject
+    Purpose: To convert a Google RFC 3339 string to a datetime.datetime object
+    param1: TimeString
+    Type: String
+    Output: datetime.datetime
+    """
     logging.debug("::".join( ( "StringToTimeObject", TimeString ) ) )
     return datetime.datetime.strptime(TimeString, "%Y-%m-%dT%H:%M:%S.%fZ")
 
 def TimeObjectToString(TimeObject):
+    """
+    Function: TimeObjectToString
+    Purpose: To convert a datetime.datetime object to UTC RFC 3339 string
+    param1: TimeObject
+    Type: datetime.datetime
+    Output: String
+    """
     logging.debug("::".join( ("TimeObjectToString", str(TimeObject) ) ) )
     return datetime.datetime.strftime(TimeObject, "%Y-%m-%dT%H:%M:%S.%fZ")
 
 def MakeDriveDir(parentID, name):
+    """
+    Function: MakeDriveDir
+    Purpose: Create a Drive directory under a parentID
+    param1: parentID
+    Type: id of Mime object application/vnd.google-apps.folder OR None
+    param2: name
+    Type: String of name of folder to create
+    Output: id of created folder.
+    
+    WeirdShit:  If None is specified it will try to make it in the root directory.
+        Wherever that is...
+    """
     logging.debug("::".join(("MakeDriveDir", str(parentID), name)))
     file_metadata = {
         'name'      : name,
@@ -40,9 +66,17 @@ def MakeDriveDir(parentID, name):
 
 def GetDriveDirId(parentID, DirName):
     """
-    Put in a Parent ID or none
-    Also put in a name of the directory
-    outputs False on a non existing directory or drive ID if it does exist
+    Function: GetDriveDirId
+    Purpose: Retrieve the id of a folder given the parent id and name of the
+        folder
+    param1: parentID
+    Type: id of Mime object application/vnd.google-apps.folder
+    param2: DirName
+    Type: String Directory name
+    Returns : id of Mime object application/vnd.google-apps.folder
+    
+    WeirdShit:  If the directory does not exist, creates same and returns the
+        new id
     """
     logging.debug("::".join(("GetDriveDirId", str(parentID), DirName)))
     query = "( name = '" + DirName + "' ) and ( mimeType = 'application/vnd.google-apps.folder' )"
@@ -60,6 +94,19 @@ def GetDriveDirId(parentID, DirName):
 
 
 def uploadFile (parentID, path, fileName):
+    """
+    Function : uploadFile
+    Purpose: Upload a file to Google Drive
+    param1: parentID
+    Type: id of Mime object application/vnd.google-apps.folder
+    param2: path
+    Type: pathlib.Path as string
+    param3: pathlib.name as string
+    Returns: Drive id or False
+    
+    Weird Shit: on failure returns False 
+    
+    """
     try:
         logging.debug("::".join(("uploadFile", parentID, path, fileName)))
         file_metadata = {'name' : fileName,
@@ -73,8 +120,21 @@ def uploadFile (parentID, path, fileName):
         return file.get('id')
     except:
         logging.error("::".join(("uploadFile", parentID, path, fileName, "Failed")))
+        return False
 
 def updateFile(fileID, fileName, filePath):
+    """
+    Function : updateFile
+    Purpose: Updates a file to Google Drive
+    param1: fileID
+    Type: id of file on Drive
+    param2: fileName
+    Type: pathlib.name as string
+    param3: pathlib.Path as string
+    Returns: Drive Revision id
+    
+    Weird Shit: on failure returns None 
+    """
     logging.debug("::".join(("updateFile", fileID, fileName, filePath)))
     try :
         file_metadata = {'fileId'   : fileID}
@@ -89,6 +149,18 @@ def updateFile(fileID, fileName, filePath):
         logging.error("::".join(("updateFile", parentID, filkePath, fileName, "Failed")))
 
 def FileLastModifiedOnDrive(parentID, fileName):
+    """
+    Function: FileLastModifiedOnDrive
+    Purpose: Return RFC 3339 date of when file was last altered on Drive
+    param1: parentID
+    Type: id of Mime object application/vnd.google-apps.folder OR None
+    param2 : fileName
+    Type : String of Filename
+    Returns: String of RFC 3339 Date or False
+    
+    Weird Shit: parentID can be None in which case you get the first file 
+        Google finds.  Returns False if nothing can be found, or system stuff up
+    """
     logging.debug("::".join(("FileLastModifiedOnDrive", parentID, fileName)))
     query = "( name = '" + fileName + "' )"
     if parentID:
@@ -110,6 +182,16 @@ def FileLastModifiedOnDrive(parentID, fileName):
 
 
 def DealWithFile(parentID, fileObject):
+    """
+    Function: DealWithFile
+    Purpose: Take a file and determine if it should be uploaded, updated, or
+        ignored
+    param1: parentID
+    Type: id of Mime object application/vnd.google-apps.folder
+    param2: fileObject 
+    Type: pathlib.object pertaining to a file.
+    Returns: None
+    """
     logging.debug("::".join(("DealWithFile", parentID, str(fileObject))))
     if not pathlib.Path(fileObject.path).exists():
         return
