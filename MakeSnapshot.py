@@ -6,7 +6,6 @@ import logging
 from googleapiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file, client, tools
-from apiclient.http import MediaFileUpload
 
 
 def StringToTimeObject(TimeString):
@@ -36,21 +35,21 @@ def ScourFolderForFiles(FolderID):
     
 
 def RemoveExcess (items, numberOfExcess, fileID):
-	logging.debug("::".join(("removeExcess",items, numberOfExcess, fileID)))
-	sortedDates = []
-	returnItems = []
-	for item in items:
-		sortedDates += item.get('modifiedTime')
-	sortedDates = sorted(sortedDates)[0:numberOfExcess]
-	for item in items:
-		if item.get('modifiedTime') not in sortedDates:
-			result = service.revisions().delete(
+    logging.debug("::".join(("removeExcess",items, numberOfExcess, fileID)))
+    sortedDates = []
+    returnItems = []
+    for item in items:
+        sortedDates += item.get('modifiedTime')
+    sortedDates = sorted(sortedDates)[0:numberOfExcess]
+    for item in items:
+        if item.get('modifiedTime') not in sortedDates:
+            service.revisions().delete(
 				fileId = fileID,
 				revisionId = item.get('id')
 			).execute()
-		else :
-			returnItems += item
-	return returnItems
+        else :
+            returnItems += item
+        return returnItems
 
 
 def DoRevisionStuff(fileID):
@@ -102,6 +101,31 @@ def GetDriveDirId(parentID, DirName):
         for item in items:
             return item.get('id')
 
+def MakeDriveDir(parentID, name):
+    """
+    Function: MakeDriveDir
+    Purpose: Create a Drive directory under a parentID
+    param1: parentID
+    Type: id of Mime object application/vnd.google-apps.folder OR None
+    param2: name
+    Type: String of name of folder to create
+    Output: id of created folder.
+    
+    WeirdShit:  If None is specified it will try to make it in the root directory.
+        Wherever that is...
+    """
+    logging.debug("::".join(("MakeDriveDir", str(parentID), name)))
+    file_metadata = {
+        'name'      : name,
+        'mimeType'  : 'application/vnd.google-apps.folder'}
+    if parentID:
+        file_metadata['parents'] = [parentID]
+    file = service.files().create(body=file_metadata,
+                                        fields='id').execute()
+    logging.info( "::".join( ( "Made Directory", name ) ) )
+    return file.get('id')
+
+
 def makeService():
     logging.debug("makeService")
     SCOPES = 'https://www.googleapis.com/auth/drive'
@@ -113,22 +137,22 @@ def makeService():
     return build('drive', 'v3', http=creds.authorize(Http()))
 
 def main():
-	logging.basicConfig(
+    logging.basicConfig(
 		filename='MakeSnapshot.log',
 		level=logging.DEBUG,
 		format='%(asctime)s %(message)s')
 
-	console = logging.StreamHandler()
-	console.setLevel(logging.INFO)
-	
-	global service
-	service = makeService()
-	global timeLastWeek
-	timeLastWeek = datetime.datetime.utcnow() - datetime.timedelta(days = 7)
-	global timeTwoWeeksAgo
-	timeTwoWeeksAgo = datetime.datetime.utcnow() - datetime.timedelta(days = 14)
-	rootDirId = GetDriveDirId(None, "PSSBackup")
-	ScourFolderForFiles(GetDriveDirId(rootDirId, "Test"))
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+
+    global service
+    service = makeService()
+    global timeLastWeek
+    timeLastWeek = datetime.datetime.utcnow() - datetime.timedelta(days = 7)
+    global timeTwoWeeksAgo
+    timeTwoWeeksAgo = datetime.datetime.utcnow() - datetime.timedelta(days = 14)
+    rootDirId = GetDriveDirId(None, "PSSBackup")
+    ScourFolderForFiles(GetDriveDirId(rootDirId, "Test"))
 
 if __name__ == '__main__' :
     main()
