@@ -107,8 +107,8 @@ def uploadFile (parentID, path, fileName):
     Weird Shit: on failure returns False 
     
     """
+    logging.debug("::".join(("uploadFile", parentID, path, fileName)))
     try:
-        logging.debug("::".join(("uploadFile", parentID, path, fileName)))
         file_metadata = {'name' : fileName,
                      'parents' : [parentID]}
         media = MediaFileUpload ( path )
@@ -146,7 +146,7 @@ def updateFile(fileID, fileName, filePath):
         logging.info( "::".join( ( "Updated", filePath, fileName ) ) )
         return file.get('id')
     except :
-        logging.error("::".join(("updateFile", parentID, filkePath, fileName, "Failed")))
+        logging.error("::".join(("updateFile", fileID, filePath, fileName, "Failed")))
 
 def FileLastModifiedOnDrive(parentID, fileName):
     """
