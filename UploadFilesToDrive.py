@@ -60,8 +60,8 @@ def GetDriveDirId(parentID, DirName):
 
 
 def uploadFile (parentID, path, fileName):
+    logging.debug("::".join(("uploadFile", parentID, path, fileName)))
     try:
-        logging.debug("::".join(("uploadFile", parentID, path, fileName)))
         file_metadata = {'name' : fileName,
                      'parents' : [parentID]}
         media = MediaFileUpload ( path )
@@ -86,7 +86,7 @@ def updateFile(fileID, fileName, filePath):
         logging.info( "::".join( ( "Updated", filePath, fileName ) ) )
         return file.get('id')
     except :
-        logging.error("::".join(("updateFile", parentID, filkePath, fileName, "Failed")))
+        logging.error("::".join(("updateFile", fileID, filePath, fileName, "Failed")))
 
 def FileLastModifiedOnDrive(parentID, fileName):
     logging.debug("::".join(("FileLastModifiedOnDrive", parentID, fileName)))
