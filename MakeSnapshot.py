@@ -9,10 +9,24 @@ from oauth2client import file, client, tools
 
 
 def StringToTimeObject(TimeString):
+    """
+    Function: StringToTimeObject
+    Purpose: To convert a Google RFC 3339 string to a datetime.datetime object
+    param1: TimeString
+    Type: String
+    Output: datetime.datetime
+    """
     logging.debug("::".join( ( "StringToTimeObject", TimeString ) ) )
     return datetime.datetime.strptime(TimeString, "%Y-%m-%dT%H:%M:%S.%fZ")
 
 def ScourFolderForFiles(FolderID):
+    """
+    Function: ScourFolderForFiles
+    Purpose: For each object in a Drive folder, work out what to do...
+    param1: FolderID
+    Type: id of Mime object application/vnd.google-apps.folder
+    Returns: Nuffin.
+    """
     logging.debug("::".join(("ScourFolderForFiles",FolderID)))
     flag = False
     nextPageToken = None
@@ -35,6 +49,17 @@ def ScourFolderForFiles(FolderID):
     
 
 def RemoveExcess (items, numberOfExcess, fileID):
+    """
+    Function: RemoveExcess
+    Purpose: Removes more than 150 keep forever revisions.
+    param1: items 
+    Type: array of Drive revisions
+    param2: numberOfExcess
+    Type: int 
+    param3: fileID
+    Type Drive id as string
+    Returns: array of Drive revisions
+    """
     logging.debug("::".join(("removeExcess",items, numberOfExcess, fileID)))
     sortedDates = []
     returnItems = []
@@ -53,6 +78,9 @@ def RemoveExcess (items, numberOfExcess, fileID):
 
 
 def DoRevisionStuff(fileID):
+    """
+    
+    """
     logging.debug("::".join(("DoRevisionStuff",fileID)))
     filteredItems = []
     results = service.revisions().list(
@@ -127,6 +155,11 @@ def MakeDriveDir(parentID, name):
 
 
 def makeService():
+    """
+    Function: Make Drive API service.
+    Purpose:  Hook into Drive API so we can send stuff up and down.
+    Returns: API service
+    """
     logging.debug("makeService")
     SCOPES = 'https://www.googleapis.com/auth/drive'
     store = file.Storage('credentials.json')
