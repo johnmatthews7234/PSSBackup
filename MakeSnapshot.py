@@ -33,15 +33,18 @@ def ScourFolderForFiles(FolderID):
     nextPageToken = None
     query = "'" + FolderID + "' in parents"
     while flag == False:
-        results = service.files().list(
-            q = query,
-            fields = "nextPageToken, files(name, id, mimeType)",
-            pageSize = 42 
+        try:
+            results = service.files().list(
+                q = query,
+                fields = "nextPageToken, files(name, id, mimeType)",
+                pageSize = 42 
             ).execute()
-        items = results.get('files',[])
-        nextPageToken = results.get('nextPageToken')
-        if ((nextPageToken == None) or (not items)):
-            flag = True
+            items = results.get('files',[])
+            nextPageToken = results.get('nextPageToken')
+            if ((nextPageToken == None) or (not items)):
+                flag = True
+        except:
+            return
         for item in items:
             if item.get('mimeType') == "application/vnd.google-apps.folder" :
                 ScourFolderForFiles(item.get('id'))
@@ -69,10 +72,13 @@ def RemoveExcess (items, numberOfExcess, fileID):
     sortedDates = sorted(sortedDates)[0:numberOfExcess]
     for item in items:
         if item.get('modifiedTime') not in sortedDates:
-            service.revisions().delete(
-				fileId = fileID,
-				revisionId = item.get('id')
-			).execute()
+            try:
+                service.revisions().delete(
+				                fileId = fileID,
+				                revisionId = item.get('id')
+			    ).execute()
+            except:
+                pass
         else :
             returnItems += item
         return returnItems
@@ -103,12 +109,16 @@ def DoRevisionStuff(fileID):
         revisionDate = StringToTimeObject(item.get('modifiedTime'))
         if (revisionDate < timeLastWeek) and (revisionDate > timeTwoWeeksAgo ) and not item.get('keepForever'):
             revision_metadata = {'keepForever' : True}
-            anotherResults = service.revisions().update(
-                fileId = fileID,
-                revisionId = item.get('id'),
-                body = revision_metadata
+            try:
+                anotherResults = service.revisions().update(
+                    fileId = fileID,
+                    revisionId = item.get('id'),
+                    body = revision_metadata
                 ).execute()
-            logging.info("::".join(("Updated Revision",fileID,str(anotherResults))))
+                logging.info("::".join(("Updated Revision",fileID,str(anotherResults))))
+            except:
+                logging.info("::".join(("Updated Revision",fileID,str(anotherResults),"Failed")))
+        
   
 def GetDriveDirId(parentID, DirName): 
     """
@@ -120,10 +130,13 @@ def GetDriveDirId(parentID, DirName):
     query = "( name = '" + DirName + "' ) and ( mimeType = 'application/vnd.google-apps.folder' )"
     if  parentID:
         query += " and ( '" + parentID + "' in parents )"
-    results = service.files().list(
-        q = query,
-        fields = "files(id)").execute()
-    items = results.get('files',[])
+    try:
+        results = service.files().list(
+            q = query,
+            fields = "files(id)").execute()
+        items = results.get('files',[])
+    except:
+        pass
     if not items:
         return MakeDriveDir(parentID, DirName)
     else:
@@ -149,8 +162,11 @@ def MakeDriveDir(parentID, name):
         'mimeType'  : 'application/vnd.google-apps.folder'}
     if parentID:
         file_metadata['parents'] = [parentID]
-    file = service.files().create(body=file_metadata,
-                                        fields='id').execute()
+    try:
+        file = service.files().create(body=file_metadata,
+                                      fields='id').execute()
+    except:
+        pass
     logging.info( "::".join( ( "Made Directory", name ) ) )
     return file.get('id')
 
