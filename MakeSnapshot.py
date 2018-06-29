@@ -3,6 +3,7 @@ from __future__ import print_function
 
 import datetime
 import logging
+import argparse
 from googleapiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file, client, tools
@@ -170,8 +171,13 @@ def makeService():
     return build('drive', 'v3', http=creds.authorize(Http()))
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--Folder", help="Name pf the folder on Google Drive")
+    parser.add_argument("--LogFile", help="Log File Name", default="MakeSnapshot.log")
+    args = parser.parse_args()
+    
     logging.basicConfig(
-		filename='MakeSnapshot.log',
+		filename=args.LogFile,
 		level=logging.DEBUG,
 		format='%(asctime)s %(message)s')
 
@@ -185,7 +191,7 @@ def main():
     global timeTwoWeeksAgo
     timeTwoWeeksAgo = datetime.datetime.utcnow() - datetime.timedelta(days = 14)
     rootDirId = GetDriveDirId(None, "PSSBackup")
-    ScourFolderForFiles(GetDriveDirId(rootDirId, "Test"))
+    ScourFolderForFiles(GetDriveDirId(rootDirId, args.Folder))
 
 if __name__ == '__main__' :
     main()
