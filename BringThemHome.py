@@ -30,8 +30,11 @@ def MakeDriveDir(parentID, name):
         'mimeType'  : 'application/vnd.google-apps.folder'}
     if parentID:
         file_metadata['parents'] = [parentID]
-    file = service.files().create(body=file_metadata,
+    try:
+        file = service.files().create(body=file_metadata,
                                         fields='id').execute()
+    except:
+        return None
     logging.info( "::".join( ( "Made Directory", name ) ) )
     return file.get('id')
 
@@ -46,9 +49,12 @@ def GetDriveDirId(parentID, DirName):
     query = "( name = '" + DirName + "' ) and ( mimeType = 'application/vnd.google-apps.folder' )"
     if  parentID:
         query += " and ( '" + parentID + "' in parents )"
-    results = service.files().list(
-        q = query,
-        fields = "files(id)").execute()
+    try:
+        results = service.files().list(
+            q = query,
+            fields = "files(id)").execute()
+    except:
+        results = None
     items = results.get('files',[])
     if not items:
         return MakeDriveDir(parentID, DirName)
@@ -117,10 +123,13 @@ def GrabFile(fileItem, WorkingDirectory):
     """
     LatestDate= datetime.datetime.min
     logging.debug("::".join(("GrabFile",str(fileItem))))
-    results = service.revisions().list(
-        fileId = fileItem.get('id'), 
-        fields = "revisions(id,modifiedTime)"
+    try :
+        results = service.revisions().list(
+            fileId = fileItem.get('id'), 
+            fields = "revisions(id,modifiedTime)"
         ).execute()
+    except:
+        results = None 
     items = results.get('revisions',[])
     BestRevision = None
     for revision in items:
@@ -152,13 +161,16 @@ def DownloadRevision(fileId, revisionId, mimeType, filename):
     if "google-apps" in mimeType:
         # skip google files
         return
-    request = service.revisions().get_media(fileId=fileId, revisionId=revisionId)
-    fh = io.FileIO(filename, 'wb')
-    downloader = MediaIoBaseDownload(fh, request)
-    done = False
-    while done is False:
-        done = downloader.next_chunk()
-    logging.info("Downloaded " + filename)
+    try:
+        request = service.revisions().get_media(fileId=fileId, revisionId=revisionId)
+        fh = io.FileIO(filename, 'wb')
+        downloader = MediaIoBaseDownload(fh, request)
+        done = False
+        while done is False:
+            done = downloader.next_chunk()
+        logging.info("Downloaded " + filename)
+    except:
+        logging.info("Downloaded " + filename + " Failed")
 
 def StringToTimeObject(TimeString):
     """
