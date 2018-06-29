@@ -172,7 +172,7 @@ def makeService():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--Folder", help="Name pf the folder on Google Drive")
+    parser.add_argument("--Folder", help="Name of the folder on Google Drive")
     parser.add_argument("--LogFile", help="Log File Name", default="MakeSnapshot.log")
     args = parser.parse_args()
     

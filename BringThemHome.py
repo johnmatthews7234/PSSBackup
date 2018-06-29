@@ -8,6 +8,7 @@ from googleapiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file, client, tools
 from apiclient.http import MediaIoBaseDownload
+import argparse
 
 
 def MakeDriveDir(parentID, name):
@@ -170,9 +171,31 @@ def StringToTimeObject(TimeString):
     logging.debug("::".join( ( "StringToTimeObject", TimeString ) ) )
     return datetime.datetime.strptime(TimeString, "%Y-%m-%dT%H:%M:%S.%fZ")
 
+def TimeObjectToString(TimeObject):
+    """
+    Function: TimeObjectToString
+    Purpose: To convert a datetime.datetime object to UTC RFC 3339 string
+    param1: TimeObject
+    Type: datetime.datetime
+    Output: String
+    """
+    logging.debug("::".join( ("TimeObjectToString", str(TimeObject) ) ) )
+    return datetime.datetime.strftime(TimeObject, "%Y-%m-%dT%H:%M:%S.%fZ")
+
 def main():
+    global RestoreDate
+    defaultRestoreDate = TimeObjectToString(datetime.datetime.utcnow())
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--RestoreDirectory", help="Where to restore files to.")
+    parser.add_argument("--RestoreDate", help="Date in past to restore from (RFC 3339 string)", default=defaultRestoreDate)
+    parser.add_argument("--LogFile", help="Log File Name", default="BringThemHome.log")
+    args = parser.parse_args()
+    
+    RestoreDate = args.RestoreDate
+    
     logging.basicConfig(
-    filename='BringThemHome.log',
+    filename=args.LogFile,
     level=logging.DEBUG,
     format='%(asctime)s %(message)s')
 
@@ -181,13 +204,9 @@ def main():
 
     global service
     service = makeService()
-
-    LocalRoot = "C:\\Temp"	
-    CurrentWorkingDirectory = "\\".join((LocalRoot,"PSSBackup")) 
+    CurrentWorkingDirectory = args.RestoreDirectory 
 
     rootDirId = GetDriveDirId(None, "PSSBackup")
-    global RestoreDate
-    RestoreDate = datetime.datetime.utcnow()
     ScourFolderForFiles(rootDirId,CurrentWorkingDirectory)
 
 if __name__ == '__main__' :
