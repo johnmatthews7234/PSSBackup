@@ -1,4 +1,4 @@
-#We want to restore shite
+
 
 import datetime
 import logging
@@ -7,7 +7,32 @@ import io
 from googleapiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file, client, tools
-from apiclient.http import MediaFileUpload, MediaIoBaseDownload
+from apiclient.http import MediaIoBaseDownload
+
+
+def MakeDriveDir(parentID, name):
+    """
+    Function: MakeDriveDir
+    Purpose: Create a Drive directory under a parentID
+    param1: parentID
+    Type: id of Mime object application/vnd.google-apps.folder OR None
+    param2: name
+    Type: String of name of folder to create
+    Output: id of created folder.
+    
+    WeirdShit:  If None is specified it will try to make it in the root directory.
+        Wherever that is...
+    """
+    logging.debug("::".join(("MakeDriveDir", str(parentID), name)))
+    file_metadata = {
+        'name'      : name,
+        'mimeType'  : 'application/vnd.google-apps.folder'}
+    if parentID:
+        file_metadata['parents'] = [parentID]
+    file = service.files().create(body=file_metadata,
+                                        fields='id').execute()
+    logging.info( "::".join( ( "Made Directory", name ) ) )
+    return file.get('id')
 
 
 def GetDriveDirId(parentID, DirName): 
@@ -30,7 +55,13 @@ def GetDriveDirId(parentID, DirName):
         for item in items:
             return item.get('id')
 
+
 def makeService():
+    """
+    Function: Make Drive API service.
+    Purpose:  Hook into Drive API so we can send stuff up and down.
+    Returns: API service
+    """
     logging.debug("makeService")
     SCOPES = 'https://www.googleapis.com/auth/drive'
     store = file.Storage('credentials.json')
@@ -40,7 +71,15 @@ def makeService():
         creds = tools.run_flow(flow, store)
     return build('drive', 'v3', http=creds.authorize(Http()))
 
+
 def ScourFolderForFiles(FolderID, WorkingDirectory):
+    """
+    Function: ScourFolderForFiles
+    Purpose: For each object in a Drive folder, work out what to do...
+    param1: FolderID
+    Type: id of Mime object application/vnd.google-apps.folder
+    Returns: Nuffin.
+    """
     logging.debug("::".join(("ScourFolderForFiles",FolderID)))
     directoryObject = os.path.dirname(WorkingDirectory + "\\")
     if not os.path.exists(directoryObject):
@@ -66,9 +105,17 @@ def ScourFolderForFiles(FolderID, WorkingDirectory):
                 GrabFile(item, WorkingDirectory)
 
 def GrabFile(fileItem, WorkingDirectory):
+    """
+    Function: GrabFile
+    Purpose: Determines which revision of a file to download.
+    param1: fileItem
+    Type: Drive File Object
+    param2: WorkingDirectory
+    Type: Path to drop file as string
+    Return: Nuffin.
+    """
     LatestDate= datetime.datetime.min
     logging.debug("::".join(("GrabFile",str(fileItem))))
-    filteredItems = []
     results = service.revisions().list(
         fileId = fileItem.get('id'), 
         fields = "revisions(id,modifiedTime)"
@@ -82,12 +129,24 @@ def GrabFile(fileItem, WorkingDirectory):
             LatestDate = RevisionDate
     if BestRevision:
         DownloadRevision(fileItem.get('id'),
-	BestRevision.get('id'),
-	fileItem.get('mimeType'),
-	WorkingDirectory + "\\" + fileItem.get('name'))
-		
-		
+	                        BestRevision.get('id'),
+	                        fileItem.get('mimeType'),
+	                        WorkingDirectory + "\\" + fileItem.get('name'))
+
+
 def DownloadRevision(fileId, revisionId, mimeType, filename):
+    """
+    Function: DownloadRevision
+    Purpose: Does the actual downloading of the file tree.
+    param1: fileId
+    Type: Drive file id as string
+    param2: revisionId
+    Type: Drive Revision id as string
+    param3: mimeType
+    Type: mimetype as string
+    param4: filename
+    Type: string
+    """
     logging.debug("::".join(("DownloadRevision",fileId, revisionId, mimeType, filename)))
     if "google-apps" in mimeType:
         # skip google files
@@ -97,11 +156,17 @@ def DownloadRevision(fileId, revisionId, mimeType, filename):
     downloader = MediaIoBaseDownload(fh, request)
     done = False
     while done is False:
-        status, done = downloader.next_chunk()
+        done = downloader.next_chunk()
     logging.info("Downloaded " + filename)
-		
-	
+
 def StringToTimeObject(TimeString):
+    """
+    Function: StringToTimeObject
+    Purpose: To convert a Google RFC 3339 string to a datetime.datetime object
+    param1: TimeString
+    Type: String
+    Output: datetime.datetime
+    """
     logging.debug("::".join( ( "StringToTimeObject", TimeString ) ) )
     return datetime.datetime.strptime(TimeString, "%Y-%m-%dT%H:%M:%S.%fZ")
 
