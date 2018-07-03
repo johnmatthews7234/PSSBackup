@@ -165,11 +165,11 @@ def FileLastModifiedOnDrive(parentID, fileName):
     query = "( name = '" + fileName + "' )"
     if parentID:
         query += " and ( '" + parentID + "' in parents )"
-    results = service.files().list(
-        q = query,
-        fields = "files(id,modifiedTime)"
-        ).execute()
     try:
+        results = service.files().list(
+             q = query,
+             fields = "files(id,modifiedTime)"
+             ).execute()
         items = results.get('files',[])
     except:
         return False
