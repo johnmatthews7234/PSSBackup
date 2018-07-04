@@ -3,12 +3,16 @@ import argparse
 
 def ScanThisDirectory(dirPath):
     with os.scandir(dirPath) as it:
-        for entry in it:
-            if entry.is_file() and (os.stat(entry.name).st_size == 0):
-                print("::".join(("Removing", entry.path, entry.name)))
-                #os.remove(entry.name)
-            if entry.is_dir():
-                ScanThisDirectory(entry.path)
+        try:
+            for entry in it:
+                print(entry.path)
+                if entry.is_file() and (os.stat(entry.name).st_size == 0):
+                    print("::".join(("Removing", entry.path, entry.name)))
+                    #os.remove(entry.name)
+                if entry.is_dir():
+                    ScanThisDirectory(entry.path)
+        except:
+            print("::".join(("Error in ", dirPath)))
                 
 def main():
     parser = argparse.ArgumentParser()
