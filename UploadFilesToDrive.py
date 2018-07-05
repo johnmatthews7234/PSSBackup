@@ -88,7 +88,7 @@ def GetDriveDirId(parentID, DirName):
             fields = "files(id)").execute()
         items = results.get('files',[])
     except:
-        pass
+        items = None
     if not items:
         return MakeDriveDir(parentID, DirName)
     else:
