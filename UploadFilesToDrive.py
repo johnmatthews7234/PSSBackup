@@ -82,10 +82,13 @@ def GetDriveDirId(parentID, DirName):
     query = "( name = '" + DirName + "' ) and ( mimeType = 'application/vnd.google-apps.folder' )"
     if  parentID:
         query += " and ( '" + parentID + "' in parents )"
-    results = service.files().list(
-        q = query,
-        fields = "files(id)").execute()
-    items = results.get('files',[])
+    try:
+        results = service.files().list(
+            q = query,
+            fields = "files(id)").execute()
+        items = results.get('files',[])
+    except:
+        pass
     if not items:
         return MakeDriveDir(parentID, DirName)
     else:
