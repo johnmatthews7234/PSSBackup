@@ -11,7 +11,7 @@ import datetime
 import logging
 import argparse
 import pathlib
-from googleapiclient.discovery import build
+from apiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file, client, tools
 from apiclient.http import MediaFileUpload
@@ -170,9 +170,9 @@ def FileLastModifiedOnDrive(parentID, fileName):
         query += " and ( '" + parentID + "' in parents )"
     try:
         results = service.files().list(
-             q = query,
-             fields = "files(id,modifiedTime)"
-             ).execute()
+            q = query,
+            fields = "files(id,modifiedTime)"
+            ).execute()
         items = results.get('files',[])
     except:
         return False
@@ -245,7 +245,8 @@ def makeService():
     if not creds or creds.invalid:
         flow = client.flow_from_clientsecrets('client_secret.json', SCOPES)
         creds = tools.run_flow(flow, store)
-    return build('drive', 'v3', http=creds.authorize(Http()))
+    service = build('drive', 'v3', http=creds.authorize(Http()))
+    return service
 
 
 def main():
