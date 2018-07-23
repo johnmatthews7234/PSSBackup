@@ -7,6 +7,7 @@ other directories it finds.
 from __future__ import print_function
 
 import os
+import platform
 import datetime
 import logging
 import argparse
@@ -95,6 +96,22 @@ def GetDriveDirId(parentID, DirName):
         for item in items:
             return item.get('id')
 
+def creationDate(path):
+    """
+    Function: creationDate
+    Purpose: Gets the date a file was created.
+    param1: path
+    Type: String path to file
+    Returns: datetime.datetime
+    """
+    if platform.system() == 'Windows':
+        return datetime.datetime.utcfromtimestamp(os.path.getctime(path))
+    else:
+        stat = os.path.getctime(path)
+        try:
+            return datetime.datetime.utcfromtimestamp(stat.st_birthtime)
+        except AttributeError:
+            return datetime.datetime.utcfromtimestamp(stat.st_mtime)
 
 def uploadFile (parentID, path, fileName):
     """
