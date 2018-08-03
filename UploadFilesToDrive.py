@@ -12,6 +12,7 @@ import datetime
 import logging
 import argparse
 import pathlib
+import sqlite3
 from apiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file, client, tools
@@ -65,7 +66,7 @@ def MakeDriveDir(parentID, name):
     return file.get('id')
 
 
-def GetDriveDirId(parentID, DirName):
+def GetDriveDirId(parentID, DirName, DirPath):
     """
     Function: GetDriveDirId
     Purpose: Retrieve the id of a folder given the parent id and name of the
@@ -79,7 +80,18 @@ def GetDriveDirId(parentID, DirName):
     WeirdShit:  If the directory does not exist, creates same and returns the
         new id
     """
-    logging.debug("::".join(("GetDriveDirId", str(parentID), DirName)))
+    logging.debug("::".join(("GetDriveDirId", str(parentID), DirName, DirPath)))
+
+    # Try Database First    
+    myCursor = sql.cursor()
+    myData = (DirPath,)
+    myCursor.execute('SELECT DriveObject FROM FolderTable WHERE FolderPath = ?', myData)
+   
+    result = myCursor.fetchone()
+    if not (result == None ):
+        return result[0]
+
+    # Then Ask Drive
     query = "( name = '" + DirName + "' ) and ( mimeType = 'application/vnd.google-apps.folder' )"
     if  parentID:
         query += " and ( '" + parentID + "' in parents )"
@@ -113,7 +125,7 @@ def creationDate(path):
         except AttributeError:
             return datetime.datetime.utcfromtimestamp(stat.st_mtime)
 
-def uploadFile (parentID, path, fileName):
+def uploadFile (parentID, myFileObject):
     """
     Function : uploadFile
     Purpose: Upload a file to Google Drive
@@ -127,22 +139,30 @@ def uploadFile (parentID, path, fileName):
     Weird Shit: on failure returns False 
     
     """
-    logging.debug("::".join(("uploadFile", parentID, path, fileName)))
+    logging.debug("::".join(("uploadFile", parentID, str(myFileObject))))
     try:
-        file_metadata = {'name' : fileName,
+        file_metadata = {'name' : myFileObject.name,
                      'parents' : [parentID]}
-        media = MediaFileUpload ( path )
+        media = MediaFileUpload ( myFileObject.path )
         file = service.files().create(body = file_metadata,
                                         media_body = media,
                                         fields = 'id'
                                       ).execute()
-        logging.info( "::".join( ( "Uploaded", path, fileName ) ) )
-        return file.get('id')
+        logging.info( "::".join( ( "Uploaded", myFileObject.path, myFileObject.name ) ) )
+        myID = file.get('id')
+        
+        LocalLastModified = TimeObjectToString(datetime.datetime.utcfromtimestamp(os.path.getmtime(myFileObject.path)))
+        #need to add date
+        myCur = sql.cursor()
+        myData = (myFileObject.path, myID, LocalLastModified,)
+        myCur.execute('INSERT INTO FileTable (FilePath, id, modifiedTime) VALUES (?, ?, ? )', myData)
+        sql.commit()
+        return myID
     except:
-        logging.error("::".join(("uploadFile", parentID, path, fileName, "Failed")))
+        logging.error("::".join(("uploadFile", parentID, myFileObject.path, myFileObject.name, "Failed")))
         return False
 
-def updateFile(fileID, fileName, filePath):
+def updateFile(fileID, fileObject):
     """
     Function : updateFile
     Purpose: Updates a file to Google Drive
@@ -155,20 +175,27 @@ def updateFile(fileID, fileName, filePath):
     
     Weird Shit: on failure returns None 
     """
-    logging.debug("::".join(("updateFile", fileID, fileName, filePath)))
+    logging.debug("::".join(("updateFile", fileID, str(fileObject))))
     try :
         file_metadata = {'fileId'   : fileID}
-        media = MediaFileUpload ( filePath )
+        media = MediaFileUpload ( fileObject.path )
         file = service.files().update(fileId = fileID,
                                     body = file_metadata,
                                     media_body = media,
                                     fields = 'id').execute()
-        logging.info( "::".join( ( "Updated", filePath, fileName ) ) )
-        return file.get('id')
+        logging.info( "::".join( ( "Updated", fileObject.path ) ) )
+        myID = file.get('id')
+        
+        LocalLastModified = TimeObjectToString(datetime.datetime.utcfromtimestamp(os.path.getmtime(fileObject.path)))
+        myCur = sql.cursor()
+        myData = (myID, LocalLastModified)
+        myCur.execute('UPDATE FileTable SET id = ?, modifiedTime = ?)', myData)
+        sql.commit()
+        return myID
     except :
-        logging.error("::".join(("updateFile", fileID, filePath, fileName, "Failed")))
+        logging.error("::".join(("updateFile", fileID, str(fileObject), "Failed")))
 
-def FileLastModifiedOnDrive(parentID, fileName):
+def FileLastModifiedOnDrive(parentID, fileObject):
     """
     Function: FileLastModifiedOnDrive
     Purpose: Return RFC 3339 date of when file was last altered on Drive
@@ -181,8 +208,17 @@ def FileLastModifiedOnDrive(parentID, fileName):
     Weird Shit: parentID can be None in which case you get the first file 
         Google finds.  Returns False if nothing can be found, or system stuff up
     """
-    logging.debug("::".join(("FileLastModifiedOnDrive", parentID, fileName)))
-    query = "( name = '" + fileName + "' )"
+    logging.debug("::".join(("FileLastModifiedOnDrive", parentID, str(fileObject))))
+    
+    # Try Database First    
+    myCursor = sql.cursor()
+    myData = (fileObject.path,)
+    myCursor.execute('SELECT modifiedTime, id FROM FileTable WHERE FilePath = ?', myData)
+    result = myCursor.fetchone()
+    if not (result == None):
+        return result
+       
+    query = "( name = '" + fileObject.name + "' )"
     if parentID:
         query += " and ( '" + parentID + "' in parents )"
     try:
@@ -197,7 +233,7 @@ def FileLastModifiedOnDrive(parentID, fileName):
         return False
     else:
         for item in items:
-            return item
+            return (item.get('modifiedTime'), item.get('id'))
             break
 
 
@@ -218,12 +254,13 @@ def DealWithFile(parentID, fileObject):
     LocalLastModified = datetime.datetime.utcfromtimestamp(os.path.getmtime(fileObject.path))
     if LocalLastModified < LastUpdate :
         return
-    myFileOnDrive = FileLastModifiedOnDrive(parentID, fileObject.name)
+    myFileOnDrive = FileLastModifiedOnDrive(parentID, fileObject)
+    
     if not myFileOnDrive:
-        uploadFile(parentID, fileObject.path, fileObject.name)
+        uploadFile(parentID, fileObject)
     else:
-        if StringToTimeObject(myFileOnDrive.get('modifiedTime')) < LocalLastModified:
-            updateFile(myFileOnDrive.get('id'), fileObject.name ,fileObject.path)
+        if StringToTimeObject(myFileOnDrive[0]) < LocalLastModified:
+            updateFile(myFileOnDrive[1] , fileObject)
     return
 
 
@@ -240,12 +277,18 @@ def MoveTreeToDrive(parentID, dirPath):
     
     """
     logging.debug("::".join(("MoveTreeToDrive", parentID, dirPath)))
+    
     with os.scandir(dirPath) as it:
         for entry in it:
             if entry.is_file():
                 DealWithFile(parentID, entry)
             if entry.is_dir():
-                MoveTreeToDrive(GetDriveDirId(parentID, entry.name), entry.path)
+                DirID = GetDriveDirId(parentID, entry.name, entry.path)
+                myCur = sql.cursor()
+                myData = (entry.path, DirID)
+                myCur.execute('INSERT OR IGNORE INTO FolderTable (FolderPath, DriveObject) VALUES (?, ? )', myData)
+                sql.commit()
+                MoveTreeToDrive(GetDriveDirId(parentID, entry.name, entry.path), entry.path)
 
 
 
@@ -265,6 +308,21 @@ def makeService():
     service = build('drive', 'v3', http=creds.authorize(Http()))
     return service
 
+def makeDatabase(myFolder):
+    sqlConnection = sqlite3.connect(myFolder + '.db')
+    sqlConnection.execute('''CREATE TABLE IF NOT EXISTS FileTable(ThisId INTEGER PRIMARY KEY AUTOINCREMENT,
+        FilePath TEXT UNIQUE NOT NULL,
+        modifiedTime TEXT NOT NULL,
+        id TEXT UNIQUE NOT NULL)
+    ''')
+    
+    sqlConnection.execute('''CREATE TABLE IF NOT EXISTS FolderTable(id INTEGER PRIMARY KEY AUTOINCREMENT,
+        FolderPath TEXT UNIQUE NOT NULL,
+        DriveObject TEXT UNIQUE NOT NULL)
+    ''')
+    return sqlConnection
+    
+    
 
 def main():
     parser = argparse.ArgumentParser()
@@ -285,7 +343,9 @@ def main():
 
     global service
     service = makeService()	
-
+    global sql
+    sql = makeDatabase(args.Folder)
+    
     global LastUpdate
     DateTimeFileName = (args.Folder + ".datetime")
     try:
@@ -301,9 +361,11 @@ def main():
     f = open(DateTimeFileName, 'w')
     f.write(RightNowString)
     f.close()
-    rootDirId = GetDriveDirId(None, "PSSBackup")
-    MoveTreeToDrive(GetDriveDirId(rootDirId, args.Folder), args.Path)
-
+    rootDirId = GetDriveDirId(None, "PSSBackup", args.Path + '..')
+    MoveTreeToDrive(GetDriveDirId(rootDirId, args.Folder, args.Path), args.Path)
+    sql.close()
+    
+    
 if __name__ == '__main__' :
     main()
     
