@@ -252,10 +252,8 @@ def DealWithFile(parentID, fileObject):
     if not pathlib.Path(fileObject.path).exists():
         return
     LocalLastModified = datetime.datetime.utcfromtimestamp(os.path.getmtime(fileObject.path))
-    if LocalLastModified < LastUpdate :
-        return
-    myFileOnDrive = FileLastModifiedOnDrive(parentID, fileObject)
     
+    myFileOnDrive = FileLastModifiedOnDrive(parentID, fileObject)
     if not myFileOnDrive:
         uploadFile(parentID, fileObject)
     else:
@@ -330,7 +328,6 @@ def main():
     parser.add_argument("--Path", help="Local Path to what you want backed up")
     parser.add_argument("--LogFile", help="Log File Name", default=("BackupToDrive.log"))
     parser.add_argument("-v", "--Verbose", help="Make Output Verbose", action="store_true")
-    parser.add_argument("-f", "--FullUpload", help="Ignore Date, and checks all files. (Will take longer)", action="store_true")
     args = parser.parse_args()
     logging.basicConfig(
         filename=args.LogFile,
@@ -346,21 +343,6 @@ def main():
     global sql
     sql = makeDatabase(args.Folder)
     
-    global LastUpdate
-    DateTimeFileName = (args.Folder + ".datetime")
-    try:
-        if pathlib.Path(DateTimeFileName).exists() :
-            with open(DateTimeFileName) as f:
-                LastUpdate = StringToTimeObject(f.read())
-                f.closed
-    except :
-        pass
-    if args.FullUpload:
-        LastUpdate = datetime.datetime.min
-    RightNowString = TimeObjectToString(datetime.datetime.utcnow())
-    f = open(DateTimeFileName, 'w')
-    f.write(RightNowString)
-    f.close()
     rootDirId = GetDriveDirId(None, "PSSBackup", args.Path + '..')
     MoveTreeToDrive(GetDriveDirId(rootDirId, args.Folder, args.Path), args.Path)
     sql.close()

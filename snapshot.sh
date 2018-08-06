@@ -3,4 +3,3 @@ PATH=/Library/Frameworks/Python.framework/Versions/3.6/bin:/Library/Frameworks/P
 python3 MakeSnapshot.py --Folder ACCOUNTS
 python3 MakeSnapshot.py --Folder "Client Server"
 python3 MakeSnapshot.py --Folder "PSS Server"
-
