@@ -17,6 +17,7 @@ from apiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file, client, tools
 from apiclient.http import MediaFileUpload
+from matplotlib.backends.qt_editor.formlayout import BLACKLIST
 
 
 def StringToTimeObject(TimeString):
@@ -281,7 +282,7 @@ def MoveTreeToDrive(parentID, dirPath):
         for entry in it:
             if entry.is_file():
                 DealWithFile(parentID, entry)
-            if entry.is_dir():
+            if entry.is_dir() and not entry.name in dirblacklist:
                 DirID = GetDriveDirId(parentID, entry.name, entry.path)
                 myCur = sql.cursor()
                 myData = (entry.path, DirID)
@@ -321,6 +322,15 @@ def makeDatabase(myFolder):
     ''')
     return sqlConnection
     
+def getBlacklist(fileName):
+    if not os.path.isfile(fileName):
+        return None
+    result = []
+    myFile = open(fileName, "r")
+    for BlacklistedDir in myFile:
+        result.append(BlacklistedDir)
+    myFile.close()
+    return result
     
 
 def main():
@@ -329,6 +339,7 @@ def main():
     parser.add_argument("--Path", help="Local Path to what you want backed up")
     parser.add_argument("--LogFile", help="Log File Name", default=("BackupToDrive.log"))
     parser.add_argument("-v", "--Verbose", help="Make Output Verbose", action="store_true")
+    parser.add_argument("--Blacklist", help="File containing folders to not back up", default=("Blacklist.txt"))
     args = parser.parse_args()
     logging.basicConfig(
         filename=args.LogFile,
@@ -343,6 +354,8 @@ def main():
     service = makeService()	
     global sql
     sql = makeDatabase(args.Folder)
+    global dirblacklist
+    dirblacklist = getBlacklist(args.Blacklist)
     
     rootDirId = GetDriveDirId(None, "PSSBackup", args.Path + '..')
     MoveTreeToDrive(GetDriveDirId(rootDirId, args.Folder, args.Path), args.Path)
@@ -352,3 +365,5 @@ def main():
 if __name__ == '__main__' :
     main()
     
+
+
