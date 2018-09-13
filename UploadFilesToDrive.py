@@ -154,6 +154,7 @@ def uploadFile (parentID, myFileObject):
         LocalLastModified = TimeObjectToString(datetime.datetime.utcfromtimestamp(os.path.getmtime(myFileObject.path)))
         #need to add date
         myCur = sql.cursor()
+        
         myData = (myFileObject.path, myID, LocalLastModified,)
         myCur.execute('INSERT INTO FileTable (FilePath, id, modifiedTime) VALUES (?, ?, ? )', myData)
         sql.commit()
@@ -212,12 +213,12 @@ def FileLastModifiedOnDrive(parentID, fileObject):
     
     # Try Database First    
     myCursor = sql.cursor()
-    myData = (fileObject.path,)
-    myCursor.execute('SELECT modifiedTime, id FROM FileTable WHERE FilePath = ?', myData)
+    myCursor.execute('SELECT modifiedTime, id FROM FileTable WHERE FilePath = ?', (fileObject.path,))
     result = myCursor.fetchone()
     if not (result == None):
+        logging.debug("::".join(("FileLastModifiedOnDrive", "In Database", parentID, str(fileObject.path),str(result))))    
         return result
-       
+    logging.debug("::".join("FileLastModifiedOnDrive", "In Database", parentID, str(fileObject.path)))
     query = "( name = '" + fileObject.name + "' )"
     if parentID:
         query += " and ( '" + parentID + "' in parents )"
