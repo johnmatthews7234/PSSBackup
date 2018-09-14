@@ -67,7 +67,7 @@ def MakeDriveDir(parentID, name):
     return file.get('id')
 
 
-def GetDriveDirId(parentID, DirName, DirPath):
+def GetDriveDirId(parentID, DirName, DirPath = None):
     """
     Function: GetDriveDirId
     Purpose: Retrieve the id of a folder given the parent id and name of the
@@ -82,16 +82,16 @@ def GetDriveDirId(parentID, DirName, DirPath):
         new id
     """
     logging.debug("::".join(("GetDriveDirId", str(parentID), DirName, DirPath)))
-
-    # Try Database First    
-    myCursor = sql.cursor()
-    myData = (DirPath,)
-    myCursor.execute('SELECT DriveObject FROM FolderTable WHERE FolderPath = ?', myData)
-   
-    result = myCursor.fetchone()
-    if not (result == None ):
-        return result[0]
-
+    # Try Database First
+    
+    if DirPath is not None:
+        myCursor = sql.cursor()
+        myData = (DirPath,)
+        myCursor.execute('SELECT DriveObject FROM FolderTable WHERE FolderPath = ?', myData)
+        result = myCursor.fetchone()
+        if not (result == None ):
+            return result[0]
+    
     # Then Ask Drive
     query = "( name = '" + DirName + "' ) and ( mimeType = 'application/vnd.google-apps.folder' )"
     if  parentID:
@@ -340,6 +340,7 @@ def main():
     parser.add_argument("--LogFile", help="Log File Name", default=("BackupToDrive.log"))
     parser.add_argument("-v", "--Verbose", help="Make Output Verbose", action="store_true")
     parser.add_argument("--Blacklist", help="File containing folders to not back up", default=("Blacklist.txt"))
+    parser.add_argument("--RootFolder", help="Name of folder in Google Drive\PSSBackup containing folder list", default = None)
     args = parser.parse_args()
     logging.basicConfig(
         filename=args.LogFile,
@@ -358,7 +359,11 @@ def main():
     dirblacklist = getBlacklist(args.Blacklist)
     
     rootDirId = GetDriveDirId(None, "PSSBackup", args.Path + '..')
-    MoveTreeToDrive(GetDriveDirId(rootDirId, args.Folder, args.Path), args.Path)
+    if args.RootFolder is not None:
+        rootFolderId = GetDriveDirId(rootDirId, args.RootFolder)
+        MoveTreeToDrive(GetDriveDirId(rootFolderId, args.Folder, args.Path), args.Path)
+    else:
+        MoveTreeToDrive(GetDriveDirId(rootDirId, args.Folder, args.Path), args.Path)
     sql.close()
     
     
