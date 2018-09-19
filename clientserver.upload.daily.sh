@@ -3,15 +3,15 @@ PATH=/Library/Frameworks/Python.framework/Versions/3.6/bin:/Library/Frameworks/P
 SERVERNAME="surface-john"
 SHARE="Client Server"
 PLAYGROUND=$(security find-internet-password -a ${USER} -s $SERVERNAME -w)
-if [ -e $1.log ]
+if [ -e "$1.log" ]
 then
-	rm ./$1
+	rm "./$1.log"
 fi
-if [ ! -d ./$1 ]
+if [ ! -d "./$1" ]
 then
-	md ./$1
+	mkdir "./$1"
 fi
-mount_smbfs //${USER}:$PLAYGROUND@$SERVERNAME/$SHARE/$1 ./$1
+mount_smbfs //${USER}:$PLAYGROUND@$SERVERNAME/${SHARE// /%20}/${1// /%20} "./$1"
 python3 UploadFilesToDrive.py --Folder "$1" --Path "./$1" --LogFile "$1.log" --RootFolder "$SHARE"
 
 
