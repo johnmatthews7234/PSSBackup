@@ -218,7 +218,7 @@ def FileLastModifiedOnDrive(parentID, fileObject):
     if result is not None:
         logging.debug("::".join(("FileLastModifiedOnDrive", "In Database", parentID, str(fileObject.path),str(result))))    
         return result
-    logging.debug("::".join(("FileLastModifiedOnDrive", "In Database", parentID, str(fileObject.path))))
+    logging.debug("::".join(("FileLastModifiedOnDrive", " Not in Database", parentID, str(fileObject.path))))
     query = "( name = '" + fileObject.name + "' )"
     if parentID:
         query += " and ( '" + parentID + "' in parents )"
