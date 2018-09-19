@@ -17,7 +17,6 @@ from apiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file, client, tools
 from apiclient.http import MediaFileUpload
-from matplotlib.backends.qt_editor.formlayout import BLACKLIST
 
 
 def StringToTimeObject(TimeString):
@@ -81,7 +80,7 @@ def GetDriveDirId(parentID, DirName, DirPath = None):
     WeirdShit:  If the directory does not exist, creates same and returns the
         new id
     """
-    logging.debug("::".join(("GetDriveDirId", str(parentID), DirName, DirPath)))
+    logging.debug("::".join(("GetDriveDirId", str(parentID), DirName, str(DirPath))))
     # Try Database First
     
     if DirPath is not None:
@@ -216,10 +215,10 @@ def FileLastModifiedOnDrive(parentID, fileObject):
     myCursor = sql.cursor()
     myCursor.execute('SELECT modifiedTime, id FROM FileTable WHERE FilePath = ?', (fileObject.path,))
     result = myCursor.fetchone()
-    if not (result == None):
+    if result is not None:
         logging.debug("::".join(("FileLastModifiedOnDrive", "In Database", parentID, str(fileObject.path),str(result))))    
         return result
-    logging.debug("::".join("FileLastModifiedOnDrive", "In Database", parentID, str(fileObject.path)))
+    logging.debug("::".join(("FileLastModifiedOnDrive", "In Database", parentID, str(fileObject.path))))
     query = "( name = '" + fileObject.name + "' )"
     if parentID:
         query += " and ( '" + parentID + "' in parents )"
@@ -323,16 +322,16 @@ def makeDatabase(myFolder):
     return sqlConnection
     
 def getBlacklist(fileName):
-    if not os.path.isfile(fileName):
-        return None
     result = []
+    if not os.path.isfile(fileName):
+        return result
     myFile = open(fileName, "r")
     for BlacklistedDir in myFile:
         result.append(BlacklistedDir)
     myFile.close()
     return result
     
-
+ 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--Folder", help="Name of the folder on Google Drive")
@@ -345,12 +344,12 @@ def main():
     logging.basicConfig(
         filename=args.LogFile,
         level=logging.DEBUG,
-        format='%(asctime)s %(message)s')
+        format=u'%(asctime)s %(message)s')
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
     if args.Verbose :
         console.setLevel(logging.DEBUG)
-
+        logging.basicConfig(level=logging.INFO)    
     global service
     service = makeService()	
     global sql
