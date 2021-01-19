@@ -1,14 +1,14 @@
-#ERMEGERDERP
+# ERMEGERDERP
 
-#the PSS Backup Solution
+# the PSS Backup Solution
 
-##Introduction
+## Introduction
 
 When Champions of Change was engaged by Paper Stone Scissors to manage their ICT systems, one of the missing components was Disaster Recovery.  Since there was a pressing need for this,  John Matthews of Champions wrote a series of scripts to back up and restore their corporate data.
 
 This is their story.
 
-##Prerequisites.
+## Prerequisites.
 
 Although this was designed to be as portable as possible, these instructions will be written for MacOS 10.13 Sierra
 
@@ -18,9 +18,9 @@ Although this was designed to be as portable as possible, these instructions wil
 * The scripts of helpfulness.  [PSSBackup](https://github.com/johnmatthews7234/PSSBackup)
 * You will also need the client_secret.json file.  This is available from [John Matthews](mailto:john.matthews72@gmail.com)  You can keep the file in a safe location.  This works as a permissions contract between John and you.  By using it you declare that you trust John, and that you are confident in the code.  To aid you in this, all the code is human readable, so you can read it and see what I am doing.
 
-##Setup
+## Setup
 
-###Install Python
+### Install Python
 
 Pretty much follow the directions on the packet.  After the install, some addon libraries will have to be installed.  Open the terminal and type the following commands
 
@@ -64,7 +64,7 @@ This sets up permissions for the script to write to Google Drive.
 
 What was I thinking?  Help?  But we are'nt quite ready yet.  First we need to ensure we have any network drives mapped.  To help sort this out, we need to:-
 
-###Prepare helper scripts
+### Prepare helper scripts
 
 * Open the Keychain App
 * Find the entry for the server we want to back up.
